@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>放大與縮小圖探索教室</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .num-font {
+      font-family: 'Fredoka', sans-serif;
+    }
+    /* 32px 網格線，高對比深色格線，完整整數公分格 (1格 = 1公分) */
+    .bold-grid {
+      background-size: 32px 32px;
+      background-image: 
+        linear-gradient(to right, #64748b 1.5px, transparent 1.5px),
+        linear-gradient(to bottom, #64748b 1.5px, transparent 1.5px);
+      background-position: 0 0;
+    }
+    /* 尺寸雙向箭頭線 */
+    .dim-line-h {
+      position: absolute;
+      height: 2px;
+      background-color: #dc2626;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .dim-line-v {
+      position: absolute;
+      width: 2px;
+      background-color: #dc2626;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .dim-line-h::before {
+      content: '';
+      width: 0;
+      height: 0;
+      border-top: 4px solid transparent;
+      border-bottom: 4px solid transparent;
+      border-right: 7px solid #dc2626;
+      margin-left: -1px;
+    }
+    .dim-line-h::after {
+      content: '';
+      width: 0;
+      height: 0;
+      border-top: 4px solid transparent;
+      border-bottom: 4px solid transparent;
+      border-left: 7px solid #dc2626;
+      margin-right: -1px;
+    }
+    .dim-line-v::before {
+      content: '';
+      width: 0;
+      height: 0;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-bottom: 7px solid #dc2626;
+      margin-top: -1px;
+    }
+    .dim-line-v::after {
+      content: '';
+      width: 0;
+      height: 0;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 7px solid #dc2626;
+      margin-bottom: -1px;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 h-screen w-screen overflow-hidden flex flex-col p-3 box-border">
+
+  <!-- 頂部精簡控制列：標示 1格=1公分、角色圖片切換、獨立長寬增減、一鍵重設 -->
+  <header class="bg-white rounded-2xl px-5 py-2.5 shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-3 shrink-0 mb-3">
+    
+    <!-- 左側：標題、格線說明與貓狗圖片切換 -->
+    <div class="flex items-center flex-wrap gap-2.5">
+      <span id="titleIcon" class="text-2xl transition-transform duration-200 hover:scale-110">🐱</span>
+      <h1 class="text-lg font-black text-slate-900 tracking-tight">放大與縮小圖探索教室</h1>
+      
+      <span class="bg-amber-100 text-amber-900 font-black text-xs md:text-sm px-3 py-1 rounded-full border border-amber-300">
+        1 格 = 1 公分
+      </span>
+
+      <!-- 圖片切換按鈕群組 -->
+      <div class="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 ml-1">
+        <button id="btnSelectCat" class="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-black transition-all shadow-xs bg-white text-orange-600 border border-orange-200">
+          <span>🐱</span> Cat
+        </button>
+        <button id="btnSelectDog" class="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-emerald-700">
+          <span>🐶</span> Dog
+        </button>
+      </div>
+    </div>
+
+    <!-- 右側調整控制區：長寬各自獨立調整 & 重設原圖 -->
+    <div class="flex items-center flex-wrap gap-2 md:gap-3">
+      <!-- 寬度調整 -->
+      <div class="flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+        <span class="text-xs font-bold text-slate-600">寬 (公分)：</span>
+        <button id="btnWidthMinus" class="w-7 h-7 bg-white hover:bg-slate-200 active:bg-slate-300 rounded-lg font-black text-slate-700 shadow-xs border border-slate-300 flex items-center justify-center transition" title="減少 1 公分">－</button>
+        <span id="txtWidth" class="num-font w-8 text-center font-black text-base text-blue-600">4</span>
+        <button id="btnWidthPlus" class="w-7 h-7 bg-white hover:bg-slate-200 active:bg-slate-300 rounded-lg font-black text-slate-700 shadow-xs border border-slate-300 flex items-center justify-center transition" title="增加 1 公分">＋</button>
+      </div>
+
+      <!-- 長度調整 -->
+      <div class="flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+        <span class="text-xs font-bold text-slate-600">長 (公分)：</span>
+        <button id="btnHeightMinus" class="w-7 h-7 bg-white hover:bg-slate-200 active:bg-slate-300 rounded-lg font-black text-slate-700 shadow-xs border border-slate-300 flex items-center justify-center transition" title="減少 1 公分">－</button>
+        <span id="txtHeight" class="num-font w-8 text-center font-black text-base text-blue-600">8</span>
+        <button id="btnHeightPlus" class="w-7 h-7 bg-white hover:bg-slate-200 active:bg-slate-300 rounded-lg font-black text-slate-700 shadow-xs border border-slate-300 flex items-center justify-center transition" title="增加 1 公分">＋</button>
+      </div>
+
+      <!-- 重設原圖按鈕 -->
+      <button id="btnReset" class="px-3.5 py-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-700 font-bold text-xs flex items-center gap-1.5 shadow-xs transition">
+        <span>🔄</span> 重設回 2×4 原圖
+      </button>
+    </div>
+  </header>
+
+  <!-- 橫向雙欄工作區 (左原圖基準、右調整圖自由探索) -->
+  <main class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 min-h-0">
+
+    <!-- 左邊：固定原圖 (寬 2cm、長 4cm) -->
+    <section class="bg-white rounded-3xl p-4 shadow-sm border border-slate-200 flex flex-col min-h-0">
+      <div class="flex items-center justify-between mb-2 shrink-0">
+        <h2 class="text-base font-black text-slate-800 flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full bg-slate-800"></span>
+          原圖基準
+        </h2>
+        <span id="lblOriginalBadge" class="text-xs font-bold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-md">
+          寬 2 公分 × 長 4 公分
+        </span>
+      </div>
+
+      <!-- 原圖畫布容器：16格 × 16格 = 512px × 512px -->
+      <div class="flex-1 flex items-center justify-center bg-slate-50/60 rounded-2xl border border-slate-200 overflow-auto p-2">
+        <div class="relative w-[512px] h-[512px] bg-white border-2 border-slate-700 bold-grid shadow-inner flex-none">
+
+          <!-- 原圖圖片容器：寬 2 格 (64px)、長 4 格 (128px)，精確靠在第 1 格第 1 格 (32px, 32px) -->
+          <div id="originBox" class="absolute left-[32px] top-[32px] w-[64px] h-[128px] bg-amber-50/50 border border-amber-400/80 rounded-md overflow-visible">
+            <img src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=600&q=80" 
+                 alt="原圖展示" 
+                 id="imgOriginal"
+                 class="w-full h-full object-fill rounded-md drop-shadow-sm pointer-events-none select-none">
+
+            <!-- 原圖上方寬度標註線 -->
+            <div class="dim-line-h left-0 -top-6 w-[64px]">
+              <span class="absolute -top-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[11px] font-black text-red-600 bg-white/95 px-1.5 py-0.5 rounded shadow-2xs border border-red-200">
+                寬：2 公分 (2格)
+              </span>
+            </div>
+
+            <!-- 原圖右方長度標註線 -->
+            <div class="dim-line-v -right-6 top-0 h-[128px]">
+              <span class="absolute top-1/2 left-3 -translate-y-1/2 whitespace-nowrap text-[11px] font-black text-red-600 bg-white/95 px-1.5 py-0.5 rounded shadow-2xs border border-red-200">
+                長：4 公分 (4格)
+              </span>
+            </div>
+
+            <!-- 原圖下方寬度標註線（圖片下方標註） -->
+            <div class="dim-line-h left-0 -bottom-6 w-[64px]">
+              <span class="absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[11px] font-black text-red-600 bg-white/95 px-1.5 py-0.5 rounded shadow-2xs border border-red-200">
+                寬：2 公分
+              </span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- 右邊：調整圖自由探索 -->
+    <section class="bg-white rounded-3xl p-4 shadow-sm border border-slate-200 flex flex-col min-h-0">
+      <div class="flex items-center justify-between mb-2 shrink-0">
+        <h2 class="text-base font-black text-slate-800 flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full bg-blue-600 animate-pulse"></span>
+          自由調整圖
+        </h2>
+        <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-md">
+          拖曳藍色把手或使用上方按鈕
+        </span>
+      </div>
+
+      <!-- 調整圖畫布容器 -->
+      <div class="flex-1 flex items-center justify-center bg-slate-50/60 rounded-2xl border border-slate-200 overflow-auto p-2">
+        <div id="gridCanvas" class="relative w-[512px] h-[512px] bg-white border-2 border-slate-700 bold-grid shadow-inner flex-none">
+
+          <!-- 調整後的圖片本體容器：精準靠齊第 1 格第 1 格 (32px, 32px) -->
+          <div id="targetBox" class="absolute left-[32px] top-[32px] w-[128px] h-[256px] bg-blue-50/20 border-2 border-blue-600 rounded-md transition-all duration-75">
+            <img src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=600&q=80" 
+                 alt="調整圖展示" 
+                 id="imgTarget"
+                 class="w-full h-full object-fill rounded-md drop-shadow-md pointer-events-none select-none">
+
+            <!-- 動態上方寬度尺寸標註線 -->
+            <div id="dimWidthLineTop" class="dim-line-h left-0 -top-6 w-full">
+              <span id="lblTargetWidthTop" class="absolute -top-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[11px] font-black text-red-600 bg-white/95 px-1.5 py-0.5 rounded shadow-2xs border border-red-200">
+                寬：4 公分 (4格)
+              </span>
+            </div>
+
+            <!-- 動態右方長度尺寸標註線 -->
+            <div id="dimHeightLine" class="dim-line-v -right-6 top-0 h-full">
+              <span id="lblTargetHeight" class="absolute top-1/2 left-3 -translate-y-1/2 whitespace-nowrap text-[11px] font-black text-red-600 bg-white/95 px-1.5 py-0.5 rounded shadow-2xs border border-red-200">
+                長：8 公分 (8格)
+              </span>
+            </div>
+
+            <!-- 動態下方寬度尺寸標註線 -->
+            <div id="dimWidthLineBottom" class="dim-line-h left-0 -bottom-6 w-full">
+              <span id="lblTargetWidthBottom" class="absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[11px] font-black text-red-600 bg-white/95 px-1.5 py-0.5 rounded shadow-2xs border border-red-200">
+                寬：4 公分
+              </span>
+            </div>
+
+            <!-- 右邊緣拉把 (自由拉寬) -->
+            <div id="handleRight" class="absolute -right-2 top-0 bottom-0 w-4 cursor-ew-resize hover:bg-blue-500/20 rounded-r flex items-center justify-center group z-10" title="拖曳向右拉寬">
+              <div class="w-1.5 h-8 bg-blue-600 rounded-full group-hover:scale-125 transition shadow-sm"></div>
+            </div>
+
+            <!-- 下邊緣拉把 (自由拉長) -->
+            <div id="handleBottom" class="absolute left-0 right-0 -bottom-2 h-4 cursor-ns-resize hover:bg-blue-500/20 rounded-b flex items-center justify-center group z-10" title="拖曳向下拉長">
+              <div class="h-1.5 w-8 bg-blue-600 rounded-full group-hover:scale-125 transition shadow-sm"></div>
+            </div>
+
+            <!-- 右下角拉把 (同時自由拉寬與拉長) -->
+            <div id="handleCorner" class="absolute -right-3 -bottom-3 w-6 h-6 bg-blue-600 hover:bg-blue-700 active:scale-95 border-2 border-white rounded-full shadow-lg cursor-nwse-resize flex items-center justify-center z-20 transition" title="拖曳角落自由縮放寬與長">
+              <div class="w-1.5 h-1.5 bg-white rounded-full pointer-events-none"></div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // 預設 SVG 備援來源 (離線或載入異常保證正常展示)
+    const FALLBACK_CAT_SVG = "data:image/svg+xml;utf8," + encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 450" width="100%" height="100%">
+        <defs>
+          <radialGradient id="catBody" cx="50%" cy="60%" r="55%">
+            <stop offset="0%" stop-color="#fb923c"/>
+            <stop offset="70%" stop-color="#ea580c"/>
+            <stop offset="100%" stop-color="#c2410c"/>
+          </radialGradient>
+        </defs>
+        <polygon points="65,95 95,25 125,80" fill="#ea580c" stroke="#9a3412" stroke-width="6"/>
+        <polygon points="75,90 100,40 120,80" fill="#fecdd3"/>
+        <polygon points="235,95 205,25 175,80" fill="#ea580c" stroke="#9a3412" stroke-width="6"/>
+        <polygon points="225,90 200,40 180,80" fill="#fecdd3"/>
+        <path d="M 150,60 C 230,60 280,140 280,260 C 280,380 240,430 150,430 C 60,430 20,380 20,260 C 20,140 70,60 150,60 Z" fill="url(#catBody)" stroke="#9a3412" stroke-width="7"/>
+        <ellipse cx="150" cy="290" rx="85" ry="120" fill="#ffedd5" opacity="0.95"/>
+        <ellipse cx="115" cy="135" rx="16" ry="19" fill="#facc15" stroke="#854d0e" stroke-width="3"/>
+        <ellipse cx="115" cy="135" rx="8" ry="16" fill="#0f172a"/>
+        <circle cx="119" cy="130" r="3.5" fill="#ffffff"/>
+        <ellipse cx="185" cy="135" rx="16" ry="19" fill="#facc15" stroke="#854d0e" stroke-width="3"/>
+        <ellipse cx="185" cy="135" rx="8" ry="16" fill="#0f172a"/>
+        <circle cx="189" cy="130" r="3.5" fill="#ffffff"/>
+        <polygon points="150,158 141,146 159,146" fill="#f43f5e"/>
+        <path d="M 150,158 Q 138,172 126,166 M 150,158 Q 162,172 174,166" stroke="#9a3412" stroke-width="5" fill="none" stroke-linecap="round"/>
+      </svg>
+    `);
+
+    const FALLBACK_DOG_SVG = "data:image/svg+xml;utf8," + encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 450" width="100%" height="100%">
+        <rect width="100%" height="100%" fill="#86efac"/>
+        <ellipse cx="150" cy="280" rx="110" ry="140" fill="#fde047" stroke="#b45309" stroke-width="6"/>
+        <circle cx="150" cy="160" r="95" fill="#facc15" stroke="#b45309" stroke-width="6"/>
+        <path d="M 70,120 Q 35,190 70,240 Q 95,200 90,140 Z" fill="#ca8a04" stroke="#b45309" stroke-width="5"/>
+        <path d="M 230,120 Q 265,190 230,240 Q 205,200 210,140 Z" fill="#ca8a04" stroke="#b45309" stroke-width="5"/>
+        <circle cx="115" cy="145" r="13" fill="#1e293b"/>
+        <circle cx="118" cy="141" r="4" fill="#ffffff"/>
+        <circle cx="185" cy="145" r="13" fill="#1e293b"/>
+        <circle cx="188" cy="141" r="4" fill="#ffffff"/>
+        <ellipse cx="150" cy="180" rx="20" ry="14" fill="#1e293b"/>
+        <path d="M 150,194 C 130,230 170,230 150,194" fill="#f43f5e"/>
+      </svg>
+    `);
+
+    // 兩組角色圖片定義（對應所提供的胖橘貓與草地黃金獵犬照片）
+    const CHARACTERS = {
+      cat: {
+        icon: '🐱',
+        name: '胖橘貓',
+        url: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=600&q=80',
+        fallback: FALLBACK_CAT_SVG
+      },
+      dog: {
+        icon: '🐶',
+        name: '開心狗',
+        url: 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=600&q=80',
+        fallback: FALLBACK_DOG_SVG
+      }
+    };
+
+    let currentCharacter = 'cat';
+
+    // 參數設定 (1格 = 1公分 = 32px)
+    const GRID_SIZE = 32;
+    const ORIGIN_W = 2; // 原圖寬 2 公分 (2格)
+    const ORIGIN_H = 4; // 原圖長 4 公分 (4格)
+    const MAX_GRID = 14; // 最大擴展至 14 格
+
+    // 調整圖當前尺寸（公分，預設為寬 4cm、長 8cm）
+    let currentW = 4;
+    let currentH = 8;
+
+    // DOM 元素快取
+    const titleIcon = document.getElementById('titleIcon');
+    const imgOriginal = document.getElementById('imgOriginal');
+    const imgTarget = document.getElementById('imgTarget');
+    const targetBox = document.getElementById('targetBox');
+    const txtWidth = document.getElementById('txtWidth');
+    const txtHeight = document.getElementById('txtHeight');
+    const lblTargetWidthTop = document.getElementById('lblTargetWidthTop');
+    const lblTargetWidthBottom = document.getElementById('lblTargetWidthBottom');
+    const lblTargetHeight = document.getElementById('lblTargetHeight');
+
+    const btnSelectCat = document.getElementById('btnSelectCat');
+    const btnSelectDog = document.getElementById('btnSelectDog');
+
+    // 圖片載入錯誤處理機制
+    imgOriginal.onerror = () => { imgOriginal.src = CHARACTERS[currentCharacter].fallback; };
+    imgTarget.onerror = () => { imgTarget.src = CHARACTERS[currentCharacter].fallback; };
+
+    // 圖片切換函式
+    function switchCharacter(type) {
+      currentCharacter = type;
+      const char = CHARACTERS[type];
+
+      // 更新兩張圖片的來源
+      imgOriginal.src = char.url;
+      imgTarget.src = char.url;
+      titleIcon.textContent = char.icon;
+
+      // 更新按鈕樣式狀態
+      if (type === 'cat') {
+        btnSelectCat.className = "flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-black transition-all shadow-xs bg-white text-orange-600 border border-orange-200";
+        btnSelectDog.className = "flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-emerald-700";
+      } else {
+        btnSelectDog.className = "flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-black transition-all shadow-xs bg-white text-emerald-600 border border-emerald-200";
+        btnSelectCat.className = "flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-orange-600";
+      }
+    }
+
+    btnSelectCat.addEventListener('click', () => switchCharacter('cat'));
+    btnSelectDog.addEventListener('click', () => switchCharacter('dog'));
+
+    // 畫面更新函式
+    function render() {
+      // 設定目標盒子的像素尺寸
+      targetBox.style.width = `${currentW * GRID_SIZE}px`;
+      targetBox.style.height = `${currentH * GRID_SIZE}px`;
+
+      // 更新控制板數字
+      txtWidth.textContent = currentW;
+      txtHeight.textContent = currentH;
+
+      // 更新尺寸標記
+      lblTargetWidthTop.textContent = `寬：${currentW} 公分 (${currentW}格)`;
+      lblTargetWidthBottom.textContent = `寬：${currentW} 公分`;
+      lblTargetHeight.textContent = `長：${currentH} 公分 (${currentH}格)`;
+    }
+
+    // 寬度獨立增減
+    document.getElementById('btnWidthPlus').addEventListener('click', () => {
+      if (currentW < MAX_GRID) {
+        currentW++;
+        render();
+      }
+    });
+
+    document.getElementById('btnWidthMinus').addEventListener('click', () => {
+      if (currentW > 1) {
+        currentW--;
+        render();
+      }
+    });
+
+    // 長度獨立增減
+    document.getElementById('btnHeightPlus').addEventListener('click', () => {
+      if (currentH < MAX_GRID) {
+        currentH++;
+        render();
+      }
+    });
+
+    document.getElementById('btnHeightMinus').addEventListener('click', () => {
+      if (currentH > 1) {
+        currentH--;
+        render();
+      }
+    });
+
+    // 重設回原圖 2×4
+    document.getElementById('btnReset').addEventListener('click', () => {
+      currentW = ORIGIN_W;
+      currentH = ORIGIN_H;
+      render();
+    });
+
+    // 拖曳拉把邏輯
+    let dragMode = null; // 'right' | 'bottom' | 'corner'
+    let startX = 0, startY = 0;
+    let initialW = 0, initialH = 0;
+
+    function startDrag(e, mode) {
+      e.preventDefault();
+      dragMode = mode;
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      startX = clientX;
+      startY = clientY;
+      initialW = currentW;
+      initialH = currentH;
+
+      window.addEventListener('mousemove', onDragging);
+      window.addEventListener('touchmove', onDragging, { passive: false });
+      window.addEventListener('mouseup', stopDrag);
+      window.addEventListener('touchend', stopDrag);
+    }
+
+    function onDragging(e) {
+      if (!dragMode) return;
+      e.preventDefault();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const deltaX = clientX - startX;
+      const deltaY = clientY - startY;
+
+      const gridDeltaX = Math.round(deltaX / GRID_SIZE);
+      const gridDeltaY = Math.round(deltaY / GRID_SIZE);
+
+      if (dragMode === 'right') {
+        currentW = Math.max(1, Math.min(MAX_GRID, initialW + gridDeltaX));
+      } else if (dragMode === 'bottom') {
+        currentH = Math.max(1, Math.min(MAX_GRID, initialH + gridDeltaY));
+      } else if (dragMode === 'corner') {
+        currentW = Math.max(1, Math.min(MAX_GRID, initialW + gridDeltaX));
+        currentH = Math.max(1, Math.min(MAX_GRID, initialH + gridDeltaY));
+      }
+      render();
+    }
+
+    function stopDrag() {
+      dragMode = null;
+      window.removeEventListener('mousemove', onDragging);
+      window.removeEventListener('touchmove', onDragging);
+      window.removeEventListener('mouseup', stopDrag);
+      window.removeEventListener('touchend', stopDrag);
+    }
+
+    // 綁定拉把事件
+    document.getElementById('handleRight').addEventListener('mousedown', (e) => startDrag(e, 'right'));
+    document.getElementById('handleRight').addEventListener('touchstart', (e) => startDrag(e, 'right'));
+
+    document.getElementById('handleBottom').addEventListener('mousedown', (e) => startDrag(e, 'bottom'));
+    document.getElementById('handleBottom').addEventListener('touchstart', (e) => startDrag(e, 'bottom'));
+
+    document.getElementById('handleCorner').addEventListener('mousedown', (e) => startDrag(e, 'corner'));
+    document.getElementById('handleCorner').addEventListener('touchstart', (e) => startDrag(e, 'corner'));
+
+    // 初始渲染
+    render();
+  </script>
+</body>
+</html>
